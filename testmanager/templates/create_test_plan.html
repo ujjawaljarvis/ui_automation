@@ -1,0 +1,455 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Test Plan - TestAutomator{% endblock %}
+
+{% block extra_head %}
+<style>
+    .hidden {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white shadow rounded-lg p-6">
+    <div class="flex items-center mb-6">
+        <a href="{% url 'index' %}" class="mr-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+            </svg>
+        </a>
+        <h1 class="text-2xl font-bold text-gray-900">Create Test Plan</h1>
+    </div>
+
+    <!-- Step Navigation -->
+    <div class="mb-6">
+        <div class="flex items-center">
+            <button id="step1Btn" class="px-4 py-2 bg-blue-600 text-white rounded-l-md font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" onclick="showStep(1)">
+                1. Select Project
+            </button>
+            <button id="step2Btn" class="px-4 py-2 bg-gray-200 text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 {% if not selected_project %}opacity-50 cursor-not-allowed{% endif %}" onclick="showStep(2)" {% if not selected_project %}disabled{% endif %}>
+                2. Create Test Plan
+            </button>
+            <button id="step3Btn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-r-md font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 {% if not selected_test_plan %}opacity-50 cursor-not-allowed{% endif %}" onclick="showStep(3)" {% if not selected_test_plan %}disabled{% endif %}>
+                3. Add Test Steps
+            </button>
+        </div>
+    </div>
+
+    <!-- Step 1: Create or Select Project -->
+    <div id="step1" class="step-content">
+        <h2 class="text-lg font-medium text-gray-900 mb-4">Step 1: Create or Select Project</h2>
+        
+        <div class="mb-4">
+            <div class="flex items-center space-x-4">
+                <button id="createProjectBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 {% if show_existing %}text-gray-700 bg-gray-100{% endif %}" onclick="toggleProjectForm('create')">Create New Project</button>
+                <button id="selectProjectBtn" class="px-4 py-2 {% if not show_existing %}text-gray-700 bg-gray-100{% else %}bg-blue-600 text-white{% endif %} rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" onclick="toggleProjectForm('select')">Select Existing Project</button>
+            </div>
+        </div>
+        
+        <!-- Create Project Form -->
+        <form id="createProjectForm" method="post" action="{% url 'create_project' %}" class="{% if show_existing %}hidden{% endif %}">
+            {% csrf_token %}
+            <input type="hidden" name="redirect_to" value="create_test_plan">
+            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <div>
+                    <label for="project-name" class="block text-sm font-medium text-gray-700">Project Name</label>
+                    <input type="text" id="project-name" name="name" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required>
+                </div>
+                <div>
+                    <label for="git-repo" class="block text-sm font-medium text-gray-700">Git Repository URL</label>
+                    <input type="url" id="git-repo" name="git_repo" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Create Project
+                </button>
+            </div>
+        </form>
+        
+        <!-- Select Project Form -->
+        <form id="selectProjectForm" method="post" action="{% url 'select_project' %}" class="{% if not show_existing %}hidden{% endif %}">
+            {% csrf_token %}
+            <input type="hidden" name="redirect_to" value="create_test_plan">
+            <div>
+                <label for="existing-project" class="block text-sm font-medium text-gray-700">Select Project</label>
+                <select id="existing-project" name="project_id" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required>
+                    <option value="">-- Select a project --</option>
+                    {% for project in existing_projects %}
+                        <option value="{{ project.id }}" {% if selected_project and selected_project.id == project.id %}selected{% endif %}>{{ project.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Select Project
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Step 2: Create Test Plan -->
+    <div id="step2" class="step-content hidden">
+        <h2 class="text-lg font-medium text-gray-900 mb-4">Step 2: Create Test Plan</h2>
+        
+        {% if selected_project %}
+        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+            <div class="flex">
+                <div>
+                    <p class="text-sm text-blue-700">
+                        Project <span class="font-medium">{{ selected_project.name }}</span> selected.
+                        <button type="button" onclick="showStep(1)" class="text-blue-600 hover:text-blue-800 underline">Change project</button>
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <form method="post" action="{% url 'create_test_plan_for_project' selected_project.id %}">
+            {% csrf_token %}
+            <input type="hidden" name="redirect_to" value="create_test_plan">
+            <div>
+                <label for="test-plan-name" class="block text-sm font-medium text-gray-700">Test Plan Name</label>
+                <input type="text" id="test-plan-name" name="name" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required>
+            </div>
+            <div class="mt-4 flex justify-between">
+                <button type="button" onclick="showStep(1)" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Back
+                </button>
+                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Create Test Plan
+                </button>
+            </div>
+        </form>
+        {% else %}
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+            <div class="flex">
+                <div>
+                    <p class="text-sm text-yellow-700">
+                        Please select a project first.
+                        <button type="button" onclick="showStep(1)" class="text-yellow-600 hover:text-yellow-800 underline">Go back</button>
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Step 3: Create Test Steps -->
+    <div id="step3" class="step-content hidden">
+        <h2 class="text-lg font-medium text-gray-900 mb-4">Step 3: Create Test Steps</h2>
+        
+        {% if selected_test_plan %}
+        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+            <div class="flex">
+                <div>
+                    <p class="text-sm text-blue-700">
+                        Test Plan <span class="font-medium">{{ selected_test_plan.name }}</span> for Project <span class="font-medium">{{ selected_project.name }}</span>.
+                        <button type="button" onclick="showStep(2)" class="text-blue-600 hover:text-blue-800 underline">Change test plan</button>
+                        <button type="button" onclick="showStep(1)" class="text-blue-600 hover:text-blue-800 underline">Change project</button>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <form id="testStepsForm" method="post" action="{% url 'create_test_steps' selected_test_plan.id %}">
+            {% csrf_token %}
+            <div id="test-steps-container" class="space-y-6">
+                <!-- Test steps will be added here by JavaScript -->
+            </div>
+
+            <div class="mt-6 flex items-center justify-between">
+                <div>
+                    <button type="button" onclick="showStep(2)" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Back
+                    </button>
+                    <button type="button" id="add-step-btn" class="ml-2 inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                        </svg>
+                        Add Step
+                    </button>
+                </div>
+
+                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Save Test Steps
+                </button>
+            </div>
+        </form>
+        {% else %}
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+            <div class="flex">
+                <div>
+                    <p class="text-sm text-yellow-700">
+                        Please create a test plan first.
+                        <button type="button" onclick="showStep(2)" class="text-yellow-600 hover:text-yellow-800 underline">Go back</button>
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Global variables
+    var stepCounter = 0;
+    var currentStep = {{ current_step|default:1 }};
+    
+    // Show the specified step and update navigation
+    function showStep(stepNum) {
+        // Hide all steps
+        document.querySelectorAll('.step-content').forEach(step => {
+            step.classList.add('hidden');
+        });
+        
+        // Show the requested step
+        document.getElementById(`step${stepNum}`).classList.remove('hidden');
+        
+        // Update step buttons
+        document.querySelectorAll('[id^="step"][id$="Btn"]').forEach((btn, index) => {
+            const step = index + 1;
+            if (step === stepNum) {
+                btn.classList.remove('bg-gray-200', 'text-gray-700');
+                btn.classList.add('bg-blue-600', 'text-white');
+            } else if (step < stepNum) {
+                btn.classList.remove('bg-blue-600', 'text-white', 'bg-gray-200');
+                btn.classList.add('text-gray-700', 'bg-blue-100');
+            } else {
+                btn.classList.remove('bg-blue-600', 'text-white', 'bg-blue-100');
+                btn.classList.add('bg-gray-200', 'text-gray-700');
+            }
+        });
+        
+        // Update current step
+        currentStep = stepNum;
+    }
+
+    // Toggle between create and select project forms
+    function toggleProjectForm(type) {
+        if (type === 'create') {
+            document.getElementById('createProjectForm').classList.remove('hidden');
+            document.getElementById('selectProjectForm').classList.add('hidden');
+            document.getElementById('createProjectBtn').classList.add('bg-blue-600', 'text-white');
+            document.getElementById('createProjectBtn').classList.remove('text-gray-700', 'bg-gray-100');
+            document.getElementById('selectProjectBtn').classList.add('text-gray-700', 'bg-gray-100');
+            document.getElementById('selectProjectBtn').classList.remove('bg-blue-600', 'text-white');
+        } else {
+            document.getElementById('createProjectForm').classList.add('hidden');
+            document.getElementById('selectProjectForm').classList.remove('hidden');
+            document.getElementById('createProjectBtn').classList.remove('bg-blue-600', 'text-white');
+            document.getElementById('createProjectBtn').classList.add('text-gray-700', 'bg-gray-100');
+            document.getElementById('selectProjectBtn').classList.remove('text-gray-700', 'bg-gray-100');
+            document.getElementById('selectProjectBtn').classList.add('bg-blue-600', 'text-white');
+        }
+    }
+
+    // Add a new test step
+    function addTestStep() {
+        stepCounter++;
+        const container = document.getElementById('test-steps-container');
+        
+        const stepDiv = document.createElement('div');
+        stepDiv.className = 'bg-gray-50 p-4 rounded-md border border-gray-200';
+        stepDiv.id = `step-${stepCounter}`;
+        
+        stepDiv.innerHTML = `
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-md font-medium text-gray-900">Step ${stepCounter}</h3>
+                <button type="button" onclick="removeTestStep(${stepCounter})" class="text-red-600 hover:text-red-800">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+
+            <input type="hidden" name="step_order_${stepCounter}" value="${stepCounter}">
+
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                    <label for="action-${stepCounter}" class="block text-sm font-medium text-gray-700">Action</label>
+                    <select id="action-${stepCounter}" name="action_${stepCounter}" onchange="updateStepFields(${stepCounter})" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        <option value="goto">Goto</option>
+                        <option value="click">Click</option>
+                        <option value="input">Input</option>
+                        <option value="assert">Assert</option>
+                        <option value="manual">Manual</option>
+                    </select>
+                </div>
+
+                <div id="selector-type-container-${stepCounter}" class="hidden">
+                    <label for="selector-type-${stepCounter}" class="block text-sm font-medium text-gray-700">Selector Type</label>
+                    <select id="selector-type-${stepCounter}" name="selector_type_${stepCounter}" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        <option value="byid">By ID</option>
+                        <option value="byxpath">By XPath</option>
+                        <option value="byclass">By Class</option>
+                        <option value="byname">By Name</option>
+                        <option value="bytag">By Tag</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="url-container-${stepCounter}" class="mt-4">
+                <label for="url-${stepCounter}" class="block text-sm font-medium text-gray-700">URL</label>
+                <input type="url" id="url-${stepCounter}" name="input_value_${stepCounter}" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            </div>
+
+            <div id="selector-value-container-${stepCounter}" class="mt-4 hidden">
+                <label for="selector-value-${stepCounter}" class="block text-sm font-medium text-gray-700">Selector Value</label>
+                <input type="text" id="selector-value-${stepCounter}" name="selector_value_${stepCounter}" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            </div>
+
+            <div id="input-value-container-${stepCounter}" class="mt-4 hidden">
+                <label for="input-value-${stepCounter}" class="block text-sm font-medium text-gray-700">Input Value</label>
+                <input type="text" id="input-value-${stepCounter}" name="input_value_${stepCounter}" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            </div>
+
+            <div id="manual-instruction-container-${stepCounter}" class="mt-4 hidden">
+                <label for="manual-instruction-${stepCounter}" class="block text-sm font-medium text-gray-700">Manual Instruction</label>
+                <textarea id="manual-instruction-${stepCounter}" name="input_value_${stepCounter}" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></textarea>
+            </div>
+        `;
+        
+        container.appendChild(stepDiv);
+        updateStepFields(stepCounter);
+    }
+
+    // Remove a test step
+    function removeTestStep(stepNumber) {
+        const stepElement = document.getElementById(`step-${stepNumber}`);
+        if (stepElement) {
+            stepElement.remove();
+        }
+        
+        // Reorder remaining steps
+        reorderSteps();
+    }
+
+    // Reorder steps after deletion
+    function reorderSteps() {
+        const container = document.getElementById('test-steps-container');
+        const steps = container.querySelectorAll('[id^="step-"]');
+        
+        steps.forEach((step, index) => {
+            const newIndex = index + 1;
+            const oldIndex = parseInt(step.id.split('-')[1]);
+            
+            // Update step header
+            step.querySelector('h3').textContent = `Step ${newIndex}`;
+            
+            // Update step_order hidden input
+            step.querySelector(`input[name="step_order_${oldIndex}"]`).name = `step_order_${newIndex}`;
+            step.querySelector(`input[name="step_order_${newIndex}"]`).value = newIndex;
+            
+            // Update all other inputs and selects
+            step.querySelector(`select[name="action_${oldIndex}"]`).name = `action_${newIndex}`;
+            
+            const selectorTypeInput = step.querySelector(`select[name="selector_type_${oldIndex}"]`);
+            if (selectorTypeInput) selectorTypeInput.name = `selector_type_${newIndex}`;
+            
+            const selectorValueInput = step.querySelector(`input[name="selector_value_${oldIndex}"]`);
+            if (selectorValueInput) selectorValueInput.name = `selector_value_${newIndex}`;
+            
+            const inputValueInput = step.querySelector(`[name="input_value_${oldIndex}"]`);
+            if (inputValueInput) inputValueInput.name = `input_value_${newIndex}`;
+            
+            // Update IDs
+            step.id = `step-${newIndex}`;
+            
+            // Update onclick handlers
+            step.querySelector('button').setAttribute('onclick', `removeTestStep(${newIndex})`);
+            
+            // Update other element IDs
+            const elementsWithOldId = step.querySelectorAll(`[id$="-${oldIndex}"]`);
+            elementsWithOldId.forEach(element => {
+                const idBase = element.id.split('-').slice(0, -1).join('-');
+                element.id = `${idBase}-${newIndex}`;
+            });
+            
+            // Update onchange handlers
+            const actionSelect = step.querySelector(`select[id="action-${newIndex}"]`);
+            if (actionSelect) {
+                actionSelect.setAttribute('onchange', `updateStepFields(${newIndex})`);
+            }
+        });
+    }
+
+    // Update fields based on action type
+    function updateStepFields(stepNumber) {
+        const action = document.getElementById(`action-${stepNumber}`).value;
+        
+        // Hide all containers first
+        document.getElementById(`selector-type-container-${stepNumber}`).classList.add('hidden');
+        document.getElementById(`url-container-${stepNumber}`).classList.add('hidden');
+        document.getElementById(`selector-value-container-${stepNumber}`).classList.add('hidden');
+        document.getElementById(`input-value-container-${stepNumber}`).classList.add('hidden');
+        document.getElementById(`manual-instruction-container-${stepNumber}`).classList.add('hidden');
+        
+        // Remove required attribute from all inputs
+        const urlInput = document.getElementById(`url-${stepNumber}`);
+        if (urlInput) urlInput.removeAttribute('required');
+        
+        const selectorValueInput = document.getElementById(`selector-value-${stepNumber}`);
+        if (selectorValueInput) selectorValueInput.removeAttribute('required');
+        
+        const inputValueInput = document.getElementById(`input-value-${stepNumber}`);
+        if (inputValueInput) inputValueInput.removeAttribute('required');
+        
+        const manualInstructionInput = document.getElementById(`manual-instruction-${stepNumber}`);
+        if (manualInstructionInput) manualInstructionInput.removeAttribute('required');
+        
+        // Show relevant containers based on action and add required attribute
+        if (action === 'goto') {
+            document.getElementById(`url-container-${stepNumber}`).classList.remove('hidden');
+            urlInput.setAttribute('required', 'required');
+        } else if (action === 'manual') {
+            document.getElementById(`manual-instruction-container-${stepNumber}`).classList.remove('hidden');
+            manualInstructionInput.setAttribute('required', 'required');
+        } else {
+            document.getElementById(`selector-type-container-${stepNumber}`).classList.remove('hidden');
+            document.getElementById(`selector-value-container-${stepNumber}`).classList.remove('hidden');
+            selectorValueInput.setAttribute('required', 'required');
+            
+            if (action === 'input') {
+                document.getElementById(`input-value-container-${stepNumber}`).classList.remove('hidden');
+                inputValueInput.setAttribute('required', 'required');
+            }
+        }
+    }
+
+    // Form validation before submission
+    document.addEventListener('DOMContentLoaded', function() {
+        const testStepsForm = document.getElementById('testStepsForm');
+        if (testStepsForm) {
+            testStepsForm.addEventListener('submit', function(event) {
+                const container = document.getElementById('test-steps-container');
+                if (!container.children.length) {
+                    event.preventDefault();
+                    alert('Please add at least one test step before saving.');
+                }
+            });
+        }
+    });
+
+    // Initialize with one test step when the page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        // Show the current step
+        showStep(currentStep);
+        
+        // Only add a step if we're on step 3 and there's a selected test plan
+        if (currentStep === 3 && 
+            document.getElementById('add-step-btn') && 
+            !document.getElementById('test-steps-container').children.length) {
+            addTestStep();
+        }
+        
+        // Add event listener to the add step button
+        const addStepBtn = document.getElementById('add-step-btn');
+        if (addStepBtn) {
+            addStepBtn.addEventListener('click', addTestStep);
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}
