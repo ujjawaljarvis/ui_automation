@@ -1,0 +1,230 @@
+{% extends 'base.html' %}
+
+{% block title %}XPath Capture Running - TestAutomator{% endblock %}
+
+{% block content %}
+<div class="bg-white shadow rounded-lg p-6">
+    <div class="flex items-center mb-6">
+        <a href="{% url 'xpath_capture_home' %}" class="mr-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+            </svg>
+        </a>
+        <h1 class="text-2xl font-bold text-gray-900">XPath Capture Running</h1>
+    </div>
+
+    <!-- Status Card -->
+    <div class="mb-8 p-6 bg-blue-50 rounded-lg border border-blue-200">
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <svg id="status-icon-running" class="h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <svg id="status-icon-completed" class="h-8 w-8 text-green-500 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <svg id="status-icon-error" class="h-8 w-8 text-red-500 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <svg id="status-icon-browser-closed" class="h-8 w-8 text-yellow-500 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div class="ml-4">
+                <h2 class="text-lg font-medium text-gray-900" id="status-title">Capture in Progress</h2>
+                <p class="mt-1 text-sm text-gray-500" id="status-message">Hover over elements to capture them.</p>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <div class="flex justify-between text-sm text-gray-500">
+                <span>Elements Captured:</span>
+                <span id="element-count">0</span>
+            </div>
+            <div class="mt-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div id="capture-progress" class="h-2 bg-blue-600 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Browser Closed Alert -->
+    <div id="browser-closed-alert" class="mb-8 bg-yellow-50 border-l-4 border-yellow-400 p-4 hidden">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                    <strong>Browser window was closed!</strong> Click the "View Results" button below to see your captured elements.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Instructions -->
+    <div id="running-instructions" class="mb-8 bg-blue-50 border-l-4 border-blue-400 p-4">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-blue-700">
+                    <strong>Important:</strong> A new browser window has opened. Hover over elements to capture them. When you're done, return to this page and click the "Stop Capture" button below.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stop Button -->
+    <div class="flex justify-center">
+        <button id="stop-capture-btn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+            Stop Capture
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Get elements
+    const statusTitle = document.getElementById('status-title');
+    const statusMessage = document.getElementById('status-message');
+    const elementCount = document.getElementById('element-count');
+    const captureProgress = document.getElementById('capture-progress');
+    const stopCaptureBtn = document.getElementById('stop-capture-btn');
+    const statusIconRunning = document.getElementById('status-icon-running');
+    const statusIconCompleted = document.getElementById('status-icon-completed');
+    const statusIconError = document.getElementById('status-icon-error');
+    const statusIconBrowserClosed = document.getElementById('status-icon-browser-closed');
+    const browserClosedAlert = document.getElementById('browser-closed-alert');
+    const runningInstructions = document.getElementById('running-instructions');
+    
+    // Capture ID from session
+    const captureId = "{{ capture_id }}";
+    
+    // Function to get CSRF token
+    function getCsrfToken() {
+            let name = 'csrftoken';
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        let cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            let cookie = cookies[i].trim();
+            // Check if this cookie string begins with the name we want
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+    }
+    
+    // Function to update status
+    function updateStatus() {
+        fetch('{% url "get_capture_status" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({
+                capture_id: captureId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const status = data.status;
+                
+                // Update element count
+                elementCount.textContent = status.elementCount;
+                
+                // Update progress bar (just a visual indicator)
+                captureProgress.style.width = Math.min(status.elementCount * 2, 100) + '%';
+                
+                // Update status message
+                statusMessage.textContent = status.message;
+                
+                // Update status based on status
+                if (status.status === 'completed') {
+                    statusTitle.textContent = 'Capture Completed';
+                    statusIconRunning.classList.add('hidden');
+                    statusIconCompleted.classList.remove('hidden');
+                    stopCaptureBtn.textContent = 'View Results';
+                } else if (status.status === 'error') {
+                    statusTitle.textContent = 'Capture Error';
+                    statusIconRunning.classList.add('hidden');
+                    statusIconError.classList.remove('hidden');
+                    stopCaptureBtn.textContent = 'View Results';
+                } else if (status.status === 'browser_closed' || status.browserClosed) {
+                    statusTitle.textContent = 'Browser Window Closed';
+                    statusIconRunning.classList.add('hidden');
+                    statusIconBrowserClosed.classList.remove('hidden');
+                    browserClosedAlert.classList.remove('hidden');
+                    runningInstructions.classList.add('hidden');
+                    stopCaptureBtn.textContent = 'View Results';
+                }
+                
+                // Continue polling if not completed
+                if (status.status === 'running' || status.status === 'initializing') {
+                    setTimeout(updateStatus, 1000);
+                }
+            } else {
+                console.error('Error getting status:', data.error);
+                statusMessage.textContent = 'Error: ' + data.error;
+                statusTitle.textContent = 'Capture Error';
+                statusIconRunning.classList.add('hidden');
+                statusIconError.classList.remove('hidden');
+                stopCaptureBtn.textContent = 'View Results';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            statusMessage.textContent = 'Error: ' + error;
+            statusTitle.textContent = 'Capture Error';
+            statusIconRunning.classList.add('hidden');
+            statusIconError.classList.remove('hidden');
+            stopCaptureBtn.textContent = 'View Results';
+        });
+    }
+    
+    // Function to stop capture
+    function stopCapture() {
+        fetch('{% url "stop_capture" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({
+                capture_id: captureId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Redirect to results page
+                window.location.href = data.redirect;
+            } else {
+                console.error('Error stopping capture:', data.error);
+                statusMessage.textContent = 'Error stopping capture: ' + data.error;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            statusMessage.textContent = 'Error: ' + error;
+        });
+    }
+    
+    // Add event listener to stop button
+    stopCaptureBtn.addEventListener('click', stopCapture);
+    
+    // Start polling for status
+    updateStatus();
+</script>
+{% endblock %}

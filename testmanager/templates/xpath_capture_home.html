@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block title %}XPath Capture - TestAutomator{% endblock %}
+
+{% block content %}
+<div class="bg-white shadow rounded-lg p-6">
+    <div class="flex items-center mb-6">
+        <a href="{% url 'index' %}" class="mr-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+            </svg>
+        </a>
+        <h1 class="text-2xl font-bold text-gray-900">XPath Capture</h1>
+    </div>
+
+    <!-- Instructions -->
+    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-blue-700">
+                    <strong>Welcome to XPath Capture!</strong> This tool helps you capture XPath selectors from any website. Simply enter a URL below, select a project (or create a new one), and start capturing elements by hovering over them.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- URL and Project Form -->
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+        
+        <!-- URL Input -->
+        <div>
+            <label for="url" class="block text-sm font-medium text-gray-700">Website URL</label>
+            <div class="mt-1">
+                <input type="url" name="url" id="url" required class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" placeholder="https://example.com">
+            </div>
+            <p class="mt-1 text-xs text-gray-500">Enter the full URL of the website you want to capture elements from.</p>
+        </div>
+        
+        <!-- Project Selection -->
+        <div>
+            <label for="project_id" class="block text-sm font-medium text-gray-700">Select Project (Optional)</label>
+            <div class="mt-1">
+                <select name="project_id" id="project_id" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                    <option value="">-- No Project --</option>
+                    {% for project in projects %}
+                        <option value="{{ project.id }}">{{ project.name }} ({{ project.element_count }} elements)</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <!-- New Project Input -->
+        <div>
+            <label for="new_project_name" class="block text-sm font-medium text-gray-700">Or Create New Project</label>
+            <div class="mt-1">
+                <input type="text" name="new_project_name" id="new_project_name" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" placeholder="New Project Name">
+            </div>
+            <p class="mt-1 text-xs text-gray-500">Leave blank if you don't want to create a new project.</p>
+        </div>
+        
+        <!-- Submit Button -->
+        <div>
+            <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Start Capture Session
+            </button>
+        </div>
+    </form>
+    
+    <!-- Recent Projects -->
+    {% if projects %}
+    <div class="mt-8">
+        <h2 class="text-lg font-medium text-gray-900 mb-4">Recent Projects</h2>
+        <div class="bg-white shadow overflow-hidden sm:rounded-md">
+            <ul class="divide-y divide-gray-200">
+                {% for project in projects %}
+                <li>
+                    <a href="{% url 'xpath_capture_results' project.id %}" class="block hover:bg-gray-50">
+                        <div class="px-4 py-4 sm:px-6">
+                            <div class="flex items-center justify-between">
+                                <p class="text-sm font-medium text-blue-600 truncate">{{ project.name }}</p>
+                                <div class="ml-2 flex-shrink-0 flex">
+                                    <p class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                        {{ project.element_count }} elements
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="mt-2 sm:flex sm:justify-between">
+                                <div class="sm:flex">
+                                    <p class="flex items-center text-sm text-gray-500">
+                                        <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                                        </svg>
+                                        Created {{ project.created_at|date:"M d, Y" }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
