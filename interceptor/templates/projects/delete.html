@@ -1,0 +1,28 @@
+<!-- interceptor/templates/projects/delete.html -->
+{% extends 'base2.html' %}
+
+{% block title %}URL Interceptor - Delete Project{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto">
+    <h1 class="text-3xl font-bold mb-6">Delete Project</h1>
+    
+    <div class="card">
+        <div class="card-header">
+            <h2 class="text-xl font-semibold">Confirm Deletion</h2>
+        </div>
+        <div class="card-body">
+            <p class="mb-4">Are you sure you want to delete the project <strong>{{ project.name }}</strong>?</p>
+            <p class="text-red-600 mb-4">This action cannot be undone. All requests in this project will be permanently deleted.</p>
+            
+            <form method="post">
+                {% csrf_token %}
+                <div class="flex justify-between">
+                    <a href="{% url 'project_detail' project.id %}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-danger">Delete Project</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

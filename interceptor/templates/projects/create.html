@@ -1,0 +1,33 @@
+<!-- interceptor/templates/projects/create.html -->
+{% extends 'base2.html' %}
+
+{% block title %}URL Interceptor - Create Project{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">Create New Project</h1>
+    
+    <div class="card">
+        <form method="post">
+            {% csrf_token %}
+            <div class="card-header">
+                <h2 class="text-xl font-semibold">Project Details</h2>
+                <p class="text-gray-500 text-sm">Create a new project to organize your URL interceptions</p>
+            </div>
+            <div class="card-body space-y-4">
+                <div class="space-y-2">
+                    <label for="{{ form.name.id_for_label }}" class="block font-medium text-gray-700">Project Name</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                        <p class="text-red-600 text-sm">{{ form.name.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-footer flex justify-between">
+                <a href="{% url 'project_list' %}" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary">Create Project</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

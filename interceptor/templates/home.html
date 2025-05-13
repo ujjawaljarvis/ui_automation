@@ -1,0 +1,64 @@
+<!-- interceptor/templates/home.html -->
+{% extends 'base2.html' %}
+
+{% block title %}URL Interceptor - Home{% endblock %}
+
+{% block content %}
+<div class="flex flex-col items-center justify-center space-y-8">
+    <div class="text-center space-y-2">
+        <h1 class="text-4xl font-bold tracking-tight">URL Interceptor</h1>
+        <p class="text-lg text-gray-500">
+            Intercept and analyze HTTP requests and responses with Selenium
+        </p>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl">
+        <div class="card hover:shadow-lg transition-shadow">
+            <div class="card-header">
+                <h2 class="text-xl font-semibold">Create New Project</h2>
+                <p class="text-gray-500 text-sm">Start a new project to organize your URL interceptions</p>
+            </div>
+            <div class="card-body flex justify-center">
+                <div class="text-gray-300 text-6xl">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                </div>
+            </div>
+            <div class="card-footer">
+                <a href="{% url 'project_create' %}" class="btn btn-primary block text-center">Create Project</a>
+            </div>
+        </div>
+        
+        <div class="card hover:shadow-lg transition-shadow">
+            <div class="card-header">
+                <h2 class="text-xl font-semibold">View Existing Projects</h2>
+                <p class="text-gray-500 text-sm">Access your saved projects and interceptions</p>
+            </div>
+            <div class="card-body flex justify-center">
+                <div class="h-24 w-24 flex items-center justify-center">
+                    <div class="grid grid-cols-2 gap-2">
+                        {% for i in "1234" %}
+                            <div class="h-10 w-10 rounded bg-gray-200"></div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <a href="{% url 'project_list' %}" class="btn btn-secondary block text-center">View Projects</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bg-gray-50 p-6 rounded-lg w-full max-w-4xl">
+        <h2 class="text-xl font-semibold mb-4">How It Works</h2>
+        <ol class="list-decimal list-inside space-y-2">
+            <li>Create a new project or select an existing one</li>
+            <li>Enter the URL, method, headers, and body for your request</li>
+            <li>Run the interceptor to capture the complete request and response</li>
+            <li>View detailed information including headers, cookies, and body content</li>
+            <li>Save your interceptions for future reference</li>
+        </ol>
+    </div>
+</div>
+{% endblock %}

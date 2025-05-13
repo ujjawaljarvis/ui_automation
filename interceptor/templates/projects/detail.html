@@ -1,0 +1,85 @@
+<!-- interceptor/templates/projects/detail.html -->
+{% extends 'base2.html' %}
+
+{% block title %}URL Interceptor - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <div>
+        <h1 class="text-3xl font-bold">{{ project.name }}</h1>
+        <p class="text-gray-500">{{ project.description }}</p>
+    </div>
+    <div class="flex space-x-2">
+        <a href="{% url 'request_create' project.id %}" class="btn btn-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+            </svg>
+            New Request
+        </a>
+        <a href="{% url 'project_delete' project.id %}" class="btn btn-danger">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+            </svg>
+            Delete Project
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2 class="text-xl font-semibold">Requests</h2>
+        <p class="text-gray-500 text-sm">All intercepted requests in this project</p>
+    </div>
+    <div class="card-body">
+        {% if requests %}
+            <div class="space-y-4">
+                {% for request in requests %}
+                    <div class="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="flex items-center space-x-2 mb-1">
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-full {% if request.method == 'GET' %}bg-green-100 text-green-800{% elif request.method == 'POST' %}bg-blue-100 text-blue-800{% elif request.method == 'PUT' %}bg-yellow-100 text-yellow-800{% elif request.method == 'DELETE' %}bg-red-100 text-red-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ request.method }}
+                                    </span>
+                                    <span class="font-medium truncate max-w-md">{{ request.url }}</span>
+                                </div>
+                                <div class="text-sm text-gray-500 flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    {{ request.created_at|date:"Y-m-d H:i" }}
+                                </div>
+                            </div>
+                            <div class="flex space-x-2">
+                                <a href="{% url 'request_detail' project.id request.id %}" class="btn btn-secondary text-sm py-1">
+                                    View
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                    </svg>
+                                </a>
+                                <a href="{% url 'request_delete' project.id request.id %}" class="btn btn-danger text-sm py-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </a>
+                            </div>
+                        </div>
+                        {% if request.get_status_code %}
+                            <div class="mt-2">
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full {% if request.get_status_code < 400 %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                    Status: {{ request.get_status_code }}
+                                </span>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-8">
+                <p class="text-gray-500 mb-4">No requests in this project yet.</p>
+                <a href="{% url 'request_create' project.id %}" class="btn btn-primary">Create Your First Request</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,125 @@
+<!-- interceptor/templates/requests/create.html -->
+{% extends 'base2.html' %}
+
+{% block title %}URL Interceptor - New Request{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="flex items-center mb-6">
+        <a href="{% url 'project_detail' project.id %}" class="mr-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500 hover:text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+        </a>
+        <h1 class="text-3xl font-bold">New Request</h1>
+    </div>
+    
+    {% if error %}
+        <div class="bg-red-100 text-red-800 p-4 rounded-md mb-6">
+            <p class="font-medium">Error</p>
+            <p>{{ error }}</p>
+        </div>
+    {% endif %}
+    
+    <div class="card">
+        <form method="post">
+            {% csrf_token %}
+            <div class="card-header">
+                <h2 class="text-xl font-semibold">Request Details</h2>
+                <p class="text-gray-500 text-sm">Enter the details of the request you want to intercept</p>
+            </div>
+            <div class="card-body space-y-6">
+                <div class="grid grid-cols-4 gap-4">
+                    <div class="col-span-3">
+                        <label for="{{ form.url.id_for_label }}" class="block font-medium text-gray-700">URL</label>
+                        {{ form.url }}
+                        {% if form.url.errors %}
+                            <p class="text-red-600 text-sm">{{ form.url.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label for="{{ form.method.id_for_label }}" class="block font-medium text-gray-700">Method</label>
+                        {{ form.method }}
+                        {% if form.method.errors %}
+                            <p class="text-red-600 text-sm">{{ form.method.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="border-t pt-4">
+                    <div class="flex border-b">
+                        <button type="button" id="tab-headers" class="px-4 py-2 font-medium border-b-2 border-primary-500 text-primary-600">Headers</button>
+                        <button type="button" id="tab-body" class="px-4 py-2 font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">Body</button>
+                    </div>
+                    
+                    <div id="panel-headers" class="py-4">
+                        <label for="{{ form.headers.id_for_label }}" class="block font-medium text-gray-700">Headers (JSON format)</label>
+                        {{ form.headers }}
+                        {% if form.headers.errors %}
+                            <p class="text-red-600 text-sm">{{ form.headers.errors.0 }}</p>
+                        {% endif %}
+                        <p class="text-sm text-gray-500 mt-1">Enter headers as a JSON object</p>
+                    </div>
+                    
+                    <div id="panel-body" class="py-4 hidden">
+                        <label for="{{ form.body.id_for_label }}" class="block font-medium text-gray-700">Request Body (JSON format)</label>
+                        {{ form.body }}
+                        {% if form.body.errors %}
+                            <p class="text-red-600 text-sm">{{ form.body.errors.0 }}</p>
+                        {% endif %}
+                        <p class="text-sm text-gray-500 mt-1">Enter request body as a JSON object</p>
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="{{ form.wait_time.id_for_label }}" class="block font-medium text-gray-700">Wait Time (seconds)</label>
+                    {{ form.wait_time }}
+                    {% if form.wait_time.errors %}
+                        <p class="text-red-600 text-sm">{{ form.wait_time.errors.0 }}</p>
+                    {% endif %}
+                    <p class="text-sm text-gray-500 mt-1">Time to wait for the request to complete</p>
+                </div>
+            </div>
+            <div class="card-footer flex justify-between">
+                <a href="{% url 'project_detail' project.id %}" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary">Run Interceptor</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const tabHeaders = document.getElementById('tab-headers');
+        const tabBody = document.getElementById('tab-body');
+        const panelHeaders = document.getElementById('panel-headers');
+        const panelBody = document.getElementById('panel-body');
+        
+        tabHeaders.addEventListener('click', function() {
+            // Activate headers tab
+            tabHeaders.classList.add('border-primary-500', 'text-primary-600');
+            tabHeaders.classList.remove('border-transparent', 'text-gray-500');
+            tabBody.classList.remove('border-primary-500', 'text-primary-600');
+            tabBody.classList.add('border-transparent', 'text-gray-500');
+            
+            // Show headers panel
+            panelHeaders.classList.remove('hidden');
+            panelBody.classList.add('hidden');
+        });
+        
+        tabBody.addEventListener('click', function() {
+            // Activate body tab
+            tabBody.classList.add('border-primary-500', 'text-primary-600');
+            tabBody.classList.remove('border-transparent', 'text-gray-500');
+            tabHeaders.classList.remove('border-primary-500', 'text-primary-600');
+            tabHeaders.classList.add('border-transparent', 'text-gray-500');
+            
+            // Show body panel
+            panelBody.classList.remove('hidden');
+            panelHeaders.classList.add('hidden');
+        });
+    });
+</script>
+{% endblock %}
