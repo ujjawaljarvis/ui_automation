@@ -1,0 +1,173 @@
+{% extends 'base2.html' %}
+
+{% block title %}URL Interceptor - Background Request Details{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <div class="flex items-center space-x-2">
+        <a href="{% url 'collection_request_detail' project.id collection.id request.id %}" class="btn btn-secondary text-sm py-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Main Request
+        </a>
+        <h1 class="text-3xl font-bold">{{ background_request.method }} Background Request</h1>
+        {% if background_request.status_code %}
+            <span class="px-2 py-1 text-xs font-semibold rounded-full {% if background_request.status_code < 400 %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                Status: {{ background_request.status_code }}
+            </span>
+        {% endif %}
+        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+            {{ background_request.resource_type }}
+        </span>
+    </div>
+</div>
+
+<div class="mb-4">
+    <p class="text-lg font-medium truncate">{{ background_request.url }}</p>
+    <p class="text-sm text-gray-500">{{ background_request.created_at|date:"Y-m-d H:i:s" }}</p>
+</div>
+
+<div class="border-b mb-6">
+    <div class="flex">
+        <button type="button" id="tab-request" class="px-4 py-2 font-medium border-b-2 border-primary-500 text-primary-600">Request</button>
+        <button type="button" id="tab-response" class="px-4 py-2 font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">Response</button>
+    </div>
+</div>
+
+{% if background_request.har_data %}
+    <div id="panel-request">
+        <div class="space-y-6">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="text-xl font-semibold">Headers</h2>
+                    <p class="text-gray-500 text-sm">Request headers sent to the server</p>
+                </div>
+                <div class="card-body">
+                    <div class="bg-gray-50 p-4 rounded-md">
+                        <pre class="whitespace-pre-wrap text-sm">{% for header in background_request.har_data.request.headers %}{{ header.name }}: {{ header.value }}
+{% endfor %}</pre>
+                    </div>
+                </div>
+            </div>
+            
+            {% if background_request.har_data.request.cookies %}
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="text-xl font-semibold">Cookies</h2>
+                        <p class="text-gray-500 text-sm">Request cookies sent to the server</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="bg-gray-50 p-4 rounded-md">
+                            <pre class="whitespace-pre-wrap text-sm">{% for cookie in background_request.har_data.request.cookies %}{{ cookie.name }}: {{ cookie.value }}
+{% endfor %}</pre>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            
+            {% if background_request.har_data.request.body %}
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="text-xl font-semibold">Body</h2>
+                        <p class="text-gray-500 text-sm">Request body sent to the server</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="bg-gray-50 p-4 rounded-md">
+                            <pre class="whitespace-pre-wrap text-sm">{{ background_request.har_data.request.body }}</pre>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div id="panel-response" class="hidden">
+        <div class="space-y-6">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="text-xl font-semibold">Headers</h2>
+                    <p class="text-gray-500 text-sm">Response headers received from the server</p>
+                </div>
+                <div class="card-body">
+                    <div class="bg-gray-50 p-4 rounded-md">
+                        <pre class="whitespace-pre-wrap text-sm">{% for header in background_request.har_data.response.headers %}{{ header.name }}: {{ header.value }}
+{% endfor %}</pre>
+                    </div>
+                </div>
+            </div>
+            
+            {% if background_request.har_data.response.cookies %}
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="text-xl font-semibold">Cookies</h2>
+                        <p class="text-gray-500 text-sm">Response cookies received from the server</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="bg-gray-50 p-4 rounded-md">
+                            <pre class="whitespace-pre-wrap text-sm">{% for cookie in background_request.har_data.response.cookies %}{{ cookie.value }}
+{% endfor %}</pre>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="text-xl font-semibold">Body</h2>
+                    <p class="text-gray-500 text-sm">Response body received from the server</p>
+                </div>
+                <div class="card-body">
+                    <div class="bg-gray-50 p-4 rounded-md">
+                        <pre class="whitespace-pre-wrap text-sm">{{ background_request.har_data.response.content.text }}</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <div class="bg-yellow-100 text-yellow-800 p-4 rounded-md">
+        <p class="font-medium">No HAR Data</p>
+        <p>This background request doesn't have any HAR data.</p>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const tabRequest = document.getElementById('tab-request');
+        const tabResponse = document.getElementById('tab-response');
+        const panelRequest = document.getElementById('panel-request');
+        const panelResponse = document.getElementById('panel-response');
+        
+        if (!tabRequest || !tabResponse || !panelRequest || !panelResponse) {
+            return;
+        }
+        
+        tabRequest.addEventListener('click', function() {
+            // Activate request tab
+            tabRequest.classList.add('border-primary-500', 'text-primary-600');
+            tabRequest.classList.remove('border-transparent', 'text-gray-500');
+            tabResponse.classList.remove('border-primary-500', 'text-primary-600');
+            tabResponse.classList.add('border-transparent', 'text-gray-500');
+            
+            // Show request panel
+            panelRequest.classList.remove('hidden');
+            panelResponse.classList.add('hidden');
+        });
+        
+        tabResponse.addEventListener('click', function() {
+            // Activate response tab
+            tabResponse.classList.add('border-primary-500', 'text-primary-600');
+            tabResponse.classList.remove('border-transparent', 'text-gray-500');
+            tabRequest.classList.remove('border-primary-500', 'text-primary-600');
+            tabRequest.classList.add('border-transparent', 'text-gray-500');
+            
+            // Show response panel
+            panelResponse.classList.remove('hidden');
+            panelRequest.classList.add('hidden');
+        });
+    });
+</script>
+{% endblock %}
