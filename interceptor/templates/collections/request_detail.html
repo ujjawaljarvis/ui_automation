@@ -1,4 +1,4 @@
-<!-- interceptor/templates/requests/detail.html -->
+
 {% extends 'base2.html' %}
 
 {% block title %}URL Interceptor - Request Details{% endblock %}
@@ -6,43 +6,24 @@
 {% block content %}
 <div class="flex justify-between items-center mb-6">
     <div class="flex items-center space-x-2">
-        <a href="{% url 'project_detail' project.id %}" class="btn btn-secondary text-sm py-1">
+        <a href="{% url 'collection_detail' project.id collection.id %}" class="btn btn-secondary text-sm py-1">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            Back to Project
+            Back to Collection
         </a>
         <h1 class="text-3xl font-bold">{{ request.method }} Request</h1>
-        {% if request.get_status_code %}
-            <span class="px-2 py-1 text-xs font-semibold rounded-full {% if request.get_status_code < 400 %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
-                Status: {{ request.get_status_code }}
+        {% if request.status_code %}
+            <span class="px-2 py-1 text-xs font-semibold rounded-full {% if request.status_code < 400 %}bg-green-100 text-green-800{% elif request.status_code == 0 %}bg-yellow-100 text-yellow-800{% else %}bg-red-100 text-red-800{% endif %}">
+                Status: {% if request.status_code == 0 %}Error{% else %}{{ request.status_code }}{% endif %}
             </span>
         {% endif %}
-    </div>
-    <div class="flex space-x-2">
-        <a href="{% url 'request_rerun' project.id request.id %}" class="btn btn-primary text-sm py-1">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Re-run
-        </a>
-        <a href="{% url 'export_har' project.id request.id %}" class="btn btn-secondary text-sm py-1">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            Export HAR
-        </a>
-        <a href="{% url 'request_delete' project.id request.id %}" class="btn btn-danger text-sm py-1">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-            Delete
-        </a>
     </div>
 </div>
 
 <div class="mb-4">
-    <p class="text-lg font-medium truncate">{{ request.url }}</p>
+    <p class="text-lg font-medium">{{ request.name }}</p>
+    <p class="text-md truncate">{{ request.url }}</p>
     <p class="text-sm text-gray-500">{{ request.created_at|date:"Y-m-d H:i:s" }}</p>
 </div>
 
@@ -50,7 +31,6 @@
     <div class="flex">
         <button type="button" id="tab-request" class="px-4 py-2 font-medium border-b-2 border-primary-500 text-primary-600">Request</button>
         <button type="button" id="tab-response" class="px-4 py-2 font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">Response</button>
-        <button type="button" id="tab-background" class="px-4 py-2 font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">Background Requests</button>
     </div>
 </div>
 
@@ -104,53 +84,60 @@
         
         <div id="panel-response" class="hidden">
             <div class="space-y-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="text-xl font-semibold">Headers</h2>
-                        <p class="text-gray-500 text-sm">Response headers received from the server</p>
+                {% if request.status_code == 0 %}
+                    <div class="bg-yellow-100 text-yellow-800 p-4 rounded-md">
+                        <p class="font-medium">Error</p>
+                        <p>{{ request.har_data.error }}</p>
                     </div>
-                    <div class="card-body">
-                        <div class="bg-gray-50 p-4 rounded-md">
-                            <pre class="whitespace-pre-wrap text-sm">{% for header in entry.response.headers %}{{ header.name }}: {{ header.value }}
-{% endfor %}</pre>
-                        </div>
-                    </div>
-                </div>
-                
-                {% if entry.response.cookies %}
+                {% else %}
                     <div class="card">
                         <div class="card-header">
-                            <h2 class="text-xl font-semibold">Cookies</h2>
-                            <p class="text-gray-500 text-sm">Response cookies received from the server</p>
+                            <h2 class="text-xl font-semibold">Headers</h2>
+                            <p class="text-gray-500 text-sm">Response headers received from the server</p>
                         </div>
                         <div class="card-body">
                             <div class="bg-gray-50 p-4 rounded-md">
-                                <pre class="whitespace-pre-wrap text-sm">{% for cookie in entry.response.cookies %}{{ cookie.value }}
+                                <pre class="whitespace-pre-wrap text-sm">{% for header in entry.response.headers %}{{ header.name }}: {{ header.value }}
 {% endfor %}</pre>
                             </div>
                         </div>
                     </div>
-                {% endif %}
-                
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="text-xl font-semibold">Body</h2>
-                        <p class="text-gray-500 text-sm">Response body received from the server</p>
-                    </div>
-                    <div class="card-body">
-                        <div class="bg-gray-50 p-4 rounded-md">
+                    
+                    {% if entry.response.cookies %}
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 class="text-xl font-semibold">Cookies</h2>
+                                <p class="text-gray-500 text-sm">Response cookies received from the server</p>
+                            </div>
+                            <div class="card-body">
+                                <div class="bg-gray-50 p-4 rounded-md">
+                                    <pre class="whitespace-pre-wrap text-sm">{% for cookie in entry.response.cookies %}{{ cookie.value }}
+{% endfor %}</pre>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="text-xl font-semibold">Body</h2>
+                            <p class="text-gray-500 text-sm">Response body received from the server</p>
+                        </div>
+                        <div class="card-body">
+                            <div class="bg-gray-50 p-4 rounded-md">
                             {% if entry.response.content and entry.response.content.text %}
                                 <pre class="whitespace-pre-wrap text-sm">{{ entry.response.content.text }}</pre>
                             {% else %}
                                 <p class="text-sm text-gray-500 italic">No response body available.</p>
                             {% endif %}
+                            </div>
                         </div>
                     </div>
-                </div>
+                {% endif %}
             </div>
         </div>
     {% endwith %}
-    
+        
     <div id="panel-background" class="hidden">
         <div class="space-y-6">
             <div class="card">
@@ -238,7 +225,7 @@
 {% else %}
     <div class="bg-yellow-100 text-yellow-800 p-4 rounded-md">
         <p class="font-medium">No HAR Data</p>
-        <p>This request doesn't have any HAR data. Try re-running the request.</p>
+        <p>This request doesn't have any HAR data.</p>
     </div>
 {% endif %}
 {% endblock %}
@@ -248,12 +235,10 @@
     document.addEventListener('DOMContentLoaded', function() {
         const tabRequest = document.getElementById('tab-request');
         const tabResponse = document.getElementById('tab-response');
-        const tabBackground = document.getElementById('tab-background');
         const panelRequest = document.getElementById('panel-request');
         const panelResponse = document.getElementById('panel-response');
-        const panelBackground = document.getElementById('panel-background');
         
-        if (!tabRequest || !tabResponse || !tabBackground || !panelRequest || !panelResponse || !panelBackground) {
+        if (!tabRequest || !tabResponse || !panelRequest || !panelResponse) {
             return;
         }
         
@@ -263,13 +248,10 @@
             tabRequest.classList.remove('border-transparent', 'text-gray-500');
             tabResponse.classList.remove('border-primary-500', 'text-primary-600');
             tabResponse.classList.add('border-transparent', 'text-gray-500');
-            tabBackground.classList.remove('border-primary-500', 'text-primary-600');
-            tabBackground.classList.add('border-transparent', 'text-gray-500');
             
             // Show request panel
             panelRequest.classList.remove('hidden');
             panelResponse.classList.add('hidden');
-            panelBackground.classList.add('hidden');
         });
         
         tabResponse.addEventListener('click', function() {
@@ -278,38 +260,11 @@
             tabResponse.classList.remove('border-transparent', 'text-gray-500');
             tabRequest.classList.remove('border-primary-500', 'text-primary-600');
             tabRequest.classList.add('border-transparent', 'text-gray-500');
-            tabBackground.classList.remove('border-primary-500', 'text-primary-600');
-            tabBackground.classList.add('border-transparent', 'text-gray-500');
             
             // Show response panel
             panelResponse.classList.remove('hidden');
             panelRequest.classList.add('hidden');
-            panelBackground.classList.add('hidden');
-        });
-        
-        tabBackground.addEventListener('click', function() {
-            // Activate background tab
-            tabBackground.classList.add('border-primary-500', 'text-primary-600');
-            tabBackground.classList.remove('border-transparent', 'text-gray-500');
-            tabRequest.classList.remove('border-primary-500', 'text-primary-600');
-            tabRequest.classList.add('border-transparent', 'text-gray-500');
-            tabResponse.classList.remove('border-primary-500', 'text-primary-600');
-            tabResponse.classList.add('border-transparent', 'text-gray-500');
-            
-            // Show background panel
-            panelBackground.classList.remove('hidden');
-            panelRequest.classList.add('hidden');
-            panelResponse.classList.add('hidden');
         });
     });
-    
-    function toggleBackgroundDetails(id) {
-        const element = document.getElementById(id);
-        if (element.classList.contains('hidden')) {
-            element.classList.remove('hidden');
-        } else {
-            element.classList.add('hidden');
-        }
-    }
 </script>
 {% endblock %}

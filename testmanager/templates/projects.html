@@ -22,7 +22,7 @@
                     {% for project in projects %}
                         <li class="py-4">
                             <div class="flex items-center justify-between">
-                                <a href="{% url 'project_detail' project.id %}" class="text-left {% if selected_project.id == project.id %}font-medium text-blue-600{% else %}text-gray-900{% endif %}">
+                                <a href="{% url 'project_detail1' project.id %}" class="text-left {% if selected_project.id == project.id %}font-medium text-blue-600{% else %}text-gray-900{% endif %}">
                                     {{ project.name }}
                                 </a>
                                 <div class="flex items-center">

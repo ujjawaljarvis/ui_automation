@@ -4,7 +4,8 @@ import json
 import tempfile
 import os
 
-def run_interceptor(method, url, headers=None, body=None, wait_time=5):
+# Update in utils.py
+def run_interceptor(method, url, headers=None, body=None, wait_time=5, capture_background=True):
     """
     Run the Selenium interceptor script and return the HAR data
     """
@@ -34,6 +35,10 @@ def run_interceptor(method, url, headers=None, body=None, wait_time=5):
             body_file.name if body_file else '',
             str(wait_time)
         ]
+        
+        # Add capture-all flag if needed
+        if capture_background:
+            command.append('--capture-all')
         
         # Run the command
         process = subprocess.Popen(

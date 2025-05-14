@@ -1,6 +1,5 @@
-# interceptor/forms.py
 from django import forms
-from interceptor.models import Request
+from interceptor.models import Request, PostmanCollection
 from testmanager.models import Project
 
 class ProjectForm(forms.ModelForm):
@@ -30,4 +29,13 @@ class RequestForm(forms.ModelForm):
                 'placeholder': '{\n  "key": "value"\n}'
             }),
             'wait_time': forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'max': 30}),
+        }
+
+class PostmanCollectionForm(forms.ModelForm):
+    class Meta:
+        model = PostmanCollection
+        fields = ['name', 'file']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'file': forms.FileInput(attrs={'class': 'form-control'}),
         }

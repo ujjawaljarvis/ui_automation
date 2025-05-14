@@ -22,6 +22,13 @@
                         <p class="text-red-600 text-sm">{{ form.name.errors.0 }}</p>
                     {% endif %}
                 </div>
+                <div class="space-y-2">
+                <label for="{{ form.git_repo.id_for_label }}" class="block font-medium text-gray-700">Git Repository URL</label>
+                {{ form.git_repo }}
+                {% if form.git_repo.errors %}
+                    <p class="text-red-600 text-sm">{{ form.git_repo.errors.0 }}</p>
+                {% endif %}
+                </div>
             </div>
             <div class="card-footer flex justify-between">
                 <a href="{% url 'project_list' %}" class="btn btn-secondary">Cancel</a>

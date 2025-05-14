@@ -1,0 +1,78 @@
+
+{% extends 'base2.html' %}
+
+{% block title %}URL Interceptor - Collections - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <div>
+        <div class="flex items-center space-x-2">
+            <a href="{% url 'project_detail' project.id %}" class="text-gray-500 hover:text-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </a>
+            <h1 class="text-3xl font-bold">Postman Collections</h1>
+        </div>
+        <p class="text-gray-500">Project: {{ project.name }}</p>
+    </div>
+    <a href="{% url 'collection_upload' project.id %}" class="btn btn-primary">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        </svg>
+        Upload Collection
+    </a>
+</div>
+
+{% if collections %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for collection in collections %}
+            <div class="card hover:shadow-lg transition-shadow">
+                <div class="card-header">
+                    <h2 class="text-xl font-semibold">{{ collection.name }}</h2>
+                    <p class="text-gray-500 text-sm">Uploaded: {{ collection.uploaded_at|date:"Y-m-d H:i" }}</p>
+                </div>
+                <div class="card-body">
+                    <div class="flex justify-between text-sm text-gray-500">
+                        <div class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            {{ collection.request_count }} requests
+                        </div>
+                        {% if collection.last_run %}
+                            <div class="flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                {{ collection.last_run|date:"Y-m-d H:i" }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    {% if collection.is_running %}
+                        <div class="mt-4 text-center">
+                            <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                                Running...
+                            </span>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'collection_detail' project.id collection.id %}" class="btn btn-secondary block text-center">
+                        View Collection
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="bg-white rounded-lg shadow-md p-6 text-center">
+        <p class="text-gray-500 mb-4">You don't have any Postman collections in this project yet.</p>
+        <a href="{% url 'collection_upload' project.id %}" class="btn btn-primary">Upload Your First Collection</a>
+    </div>
+{% endif %}
+{% endblock %}

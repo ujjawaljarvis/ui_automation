@@ -1,0 +1,28 @@
+
+{% extends 'base2.html' %}
+
+{% block title %}URL Interceptor - Delete Collection{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto">
+    <h1 class="text-3xl font-bold mb-6">Delete Collection</h1>
+    
+    <div class="card">
+        <div class="card-header">
+            <h2 class="text-xl font-semibold">Confirm Deletion</h2>
+        </div>
+        <div class="card-body">
+            <p class="mb-4">Are you sure you want to delete the collection <strong>{{ collection.name }}</strong>?</p>
+            <p class="text-red-600 mb-4">This action cannot be undone. All requests in this collection will be permanently deleted.</p>
+            
+            <form method="post">
+                {% csrf_token %}
+                <div class="flex justify-between">
+                    <a href="{% url 'collection_detail' project.id collection.id %}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-danger">Delete Collection</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

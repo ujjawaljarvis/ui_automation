@@ -14,8 +14,8 @@ urlpatterns = [
     path('api/', include(router.urls)),
     # HTML Pages
     path('', views.index, name='index'),
-    path('projects/', views.project_list, name='project_list'),
-    path('projects/<int:project_id>/', views.project_detail, name='project_detail'),
+    path('projects/', views.project_list, name='project_list1'),
+    path('projects/<int:project_id>/', views.project_detail, name='project_detail1'),
     path('projects/<int:project_id>/test-plans/<int:test_plan_id>/', views.test_plan_detail, name='test_plan_detail'),
     path('create-test-plan/', views.create_test_plan, name='create_test_plan'),
     

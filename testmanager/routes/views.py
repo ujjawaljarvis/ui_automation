@@ -64,11 +64,11 @@ def project_list(request):
 
 def project_detail(request, project_id):
     """Redirect to project list with project selected"""
-    return redirect(f"{reverse('project_list')}?project={project_id}")
+    return redirect(f"{reverse('project_list1')}?project={project_id}")
 
 def test_plan_detail(request, project_id, test_plan_id):
     """Redirect to project list with project and test plan selected"""
-    return redirect(f"{reverse('project_list')}?project={project_id}&test_plan={test_plan_id}")
+    return redirect(f"{reverse('project_list1')}?project={project_id}&test_plan={test_plan_id}")
 
 def create_test_plan(request):
     """Render the create test plan page"""
@@ -237,7 +237,7 @@ def edit_project(request, project_id):
         if form.is_valid():
             form.save()
             messages.success(request, 'Project updated successfully!')
-            return redirect('project_detail', project_id=project.id)
+            return redirect('project_detail1', project_id=project.id)
     else:
         form = ProjectForm(instance=project)
     
@@ -308,7 +308,7 @@ def delete_test_plan(request, test_plan_id):
     project_id = test_plan.project.id
     test_plan.delete()
     messages.success(request, 'Test plan deleted successfully!')
-    return redirect('project_detail', project_id=project_id)
+    return redirect('project_detail1', project_id=project_id)
 
 @require_http_methods(["POST"])
 def delete_test_step(request, test_step_id):
