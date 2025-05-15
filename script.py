@@ -12,10 +12,10 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 
 # Setup Django
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "automation_testing.settings")  # replace with your settings path
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "automation_testing.settings") 
 django.setup()
 
-from testmanager.models import TestPlan, TestStep, TestRun  # Replace with your Django app name
+from testmanager.models import TestPlan, TestStep, TestRun  
 
 
 def setup_driver():
@@ -111,7 +111,7 @@ def run_test_plan(plan_id):
         print("\n".join(log_lines))
 
 
-# Run test plan with ID from command line argument
+# Run test plan with ID from cli
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python run_test.py <test_plan_id>")

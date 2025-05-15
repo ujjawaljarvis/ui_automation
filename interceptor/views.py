@@ -8,10 +8,9 @@ from interceptor.models import Project, PostmanCollection, CollectionRequest, Ba
 from interceptor.forms import ProjectForm, RequestForm, PostmanCollectionForm
 from interceptor.utils import run_interceptor
 import json
-import traceback
 from .utils_postman import run_collection
 import threading
-import os
+
 def home(request):
     return render(request, 'home.html')
 
@@ -164,7 +163,7 @@ def export_har(request, project_id, request_id):
     return response
 
 
-# -----------------------postman_collection.py-----------------------
+# -----------------------postman_collection -----------------------
 
 def collection_list(request, project_id):
     project = get_object_or_404(Project, id=project_id)

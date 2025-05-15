@@ -1,21 +1,18 @@
 from selenium import webdriver
-from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.common.exceptions import WebDriverException
 from webdriver_manager.chrome import ChromeDriverManager
 import time
-import base64
 from io import BytesIO
 from PIL import Image
 import threading
-import os
 import uuid
 import csv
 from django.conf import settings
 from django.core.files.base import ContentFile
-from .models import CapturedElement, Project
+from xpath.models import CapturedElement
 
 class ElementInspector(threading.Thread):
     def __init__(self, url, project_id=None, capture_id=None):

@@ -39,21 +39,6 @@ urlpatterns = [
     path('test-plans/<int:test_plan_id>/run/', views.run_test_plan, name='run_test_plan'),
     path('test-runs/<int:test_run_id>/', views.test_run_detail, name='test_run_detail'),
     path('test-plans/<int:test_plan_id>/runs/', views.get_test_runs, name='get_test_runs'),
-
-        
-    # XPath Capture URLs
-     path('xpath/', views.xpath_capture_home, name='xpath_capture_home'),
-    path('xpath/instructions/', views.xpath_capture_instructions, name='xpath_capture_instructions'),
-    path('xpath/start/', views.start_xpath_capture, name='start_xpath_capture'),
-    path('xpath/running/', views.xpath_capture_running, name='xpath_capture_running'),
-    path('xpath/status/', views.get_capture_status_view, name='get_capture_status'),
-    path('xpath/stop/', views.stop_capture_view, name='stop_capture'),
-    path('xpath/results/', views.xpath_capture_results, name='xpath_capture_results'),
-    path('xpath/results/<int:project_id>/', views.xpath_capture_results, name='xpath_capture_results'),
-    path('xpath/delete-element/<int:element_id>/', views.delete_element, name='delete_element'),
-    path('xpath/export-csv/', views.export_csv, name='export_csv'),
-    path('xpath/export-csv/<int:project_id>/', views.export_csv, name='export_csv'),
-    path('xpath-capture/element/<int:element_id>/', views.get_element_details, name='element_details'),
 ]
 
 
