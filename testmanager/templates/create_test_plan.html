@@ -171,7 +171,7 @@
                     </button>
                 </div>
 
-                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <button type="submit" id="save-steps-btn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                     Save Test Steps
                 </button>
             </div>
@@ -265,16 +265,23 @@
             </div>
 
             <input type="hidden" name="step_order_${stepCounter}" value="${stepCounter}">
+            <!-- Hidden input field that will store the final input value -->
+            <input type="hidden" id="final-input-value-${stepCounter}" name="input_value_${stepCounter}" value="">
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                     <label for="action-${stepCounter}" class="block text-sm font-medium text-gray-700">Action</label>
                     <select id="action-${stepCounter}" name="action_${stepCounter}" onchange="updateStepFields(${stepCounter})" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                        <option value="goto">Goto</option>
+                        <option value="goto">Go to URL</option>
                         <option value="click">Click</option>
-                        <option value="input">Input</option>
+                        <option value="input">Input Text</option>
                         <option value="assert">Assert</option>
-                        <option value="manual">Manual</option>
+                        <option value="select">Select Dropdown</option>
+                        <option value="wait">Wait</option>
+                        <option value="scrollto">Scroll To</option>
+                        <option value="hover">Hover</option>
+                        <option value="screenshot">Take Screenshot</option>
+                        <option value="manual">Manual Step</option>
                     </select>
                 </div>
 
@@ -286,13 +293,25 @@
                         <option value="byclass">By Class</option>
                         <option value="byname">By Name</option>
                         <option value="bytag">By Tag</option>
+                        <option value="bycss">By CSS Selector</option>
+                        <option value="bylinktext">By Link Text</option>
+                    </select>
+                </div>
+                
+                <div id="wait-type-container-${stepCounter}" class="hidden">
+                    <label for="wait-type-${stepCounter}" class="block text-sm font-medium text-gray-700">Wait Type</label>
+                    <select id="wait-type-${stepCounter}" name="wait_type_${stepCounter}" onchange="updateWaitFields(${stepCounter})" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        <option value="time">Wait for Time (seconds)</option>
+                        <option value="element">Wait for Element</option>
+                        <option value="visible">Wait for Element Visible</option>
+                        <option value="clickable">Wait for Element Clickable</option>
                     </select>
                 </div>
             </div>
 
             <div id="url-container-${stepCounter}" class="mt-4">
                 <label for="url-${stepCounter}" class="block text-sm font-medium text-gray-700">URL</label>
-                <input type="url" id="url-${stepCounter}" name="input_value_${stepCounter}" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                <input type="url" id="url-${stepCounter}" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" onchange="updateInputValue(${stepCounter})">
             </div>
 
             <div id="selector-value-container-${stepCounter}" class="mt-4 hidden">
@@ -302,17 +321,38 @@
 
             <div id="input-value-container-${stepCounter}" class="mt-4 hidden">
                 <label for="input-value-${stepCounter}" class="block text-sm font-medium text-gray-700">Input Value</label>
-                <input type="text" id="input-value-${stepCounter}" name="input_value_${stepCounter}" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                <input type="text" id="input-value-${stepCounter}" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" onchange="updateInputValue(${stepCounter})">
+            </div>
+            
+            <div id="wait-value-container-${stepCounter}" class="mt-4 hidden">
+                <label for="wait-value-${stepCounter}" class="block text-sm font-medium text-gray-700">Wait Value</label>
+                <input type="text" id="wait-value-${stepCounter}" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="Enter seconds or leave empty for default (10s)" onchange="updateInputValue(${stepCounter})">
             </div>
 
             <div id="manual-instruction-container-${stepCounter}" class="mt-4 hidden">
                 <label for="manual-instruction-${stepCounter}" class="block text-sm font-medium text-gray-700">Manual Instruction</label>
-                <textarea id="manual-instruction-${stepCounter}" name="input_value_${stepCounter}" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></textarea>
+                <textarea id="manual-instruction-${stepCounter}" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" onchange="updateInputValue(${stepCounter})"></textarea>
             </div>
         `;
         
         container.appendChild(stepDiv);
         updateStepFields(stepCounter);
+    }
+
+    // Update the hidden input value field based on the visible input field
+    function updateInputValue(stepNumber) {
+        const action = document.getElementById(`action-${stepNumber}`).value;
+        const hiddenInput = document.getElementById(`final-input-value-${stepNumber}`);
+        
+        if (action === 'goto') {
+            hiddenInput.value = document.getElementById(`url-${stepNumber}`).value;
+        } else if (action === 'input' || action === 'assert' || action === 'select') {
+            hiddenInput.value = document.getElementById(`input-value-${stepNumber}`).value;
+        } else if (action === 'wait' && document.getElementById(`wait-type-${stepNumber}`).value === 'time') {
+            hiddenInput.value = document.getElementById(`wait-value-${stepNumber}`).value;
+        } else if (action === 'manual') {
+            hiddenInput.value = document.getElementById(`manual-instruction-${stepNumber}`).value;
+        }
     }
 
     // Remove a test step
@@ -348,11 +388,17 @@
             const selectorTypeInput = step.querySelector(`select[name="selector_type_${oldIndex}"]`);
             if (selectorTypeInput) selectorTypeInput.name = `selector_type_${newIndex}`;
             
+            const waitTypeInput = step.querySelector(`select[name="wait_type_${oldIndex}"]`);
+            if (waitTypeInput) waitTypeInput.name = `wait_type_${newIndex}`;
+            
             const selectorValueInput = step.querySelector(`input[name="selector_value_${oldIndex}"]`);
             if (selectorValueInput) selectorValueInput.name = `selector_value_${newIndex}`;
             
-            const inputValueInput = step.querySelector(`[name="input_value_${oldIndex}"]`);
-            if (inputValueInput) inputValueInput.name = `input_value_${newIndex}`;
+            const finalInputValueInput = step.querySelector(`input[id="final-input-value-${oldIndex}"]`);
+            if (finalInputValueInput) {
+                finalInputValueInput.id = `final-input-value-${newIndex}`;
+                finalInputValueInput.name = `input_value_${newIndex}`;
+            }
             
             // Update IDs
             step.id = `step-${newIndex}`;
@@ -360,17 +406,27 @@
             // Update onclick handlers
             step.querySelector('button').setAttribute('onclick', `removeTestStep(${newIndex})`);
             
-            // Update other element IDs
+            // Update other element IDs and onchange handlers
             const elementsWithOldId = step.querySelectorAll(`[id$="-${oldIndex}"]`);
             elementsWithOldId.forEach(element => {
                 const idBase = element.id.split('-').slice(0, -1).join('-');
                 element.id = `${idBase}-${newIndex}`;
+                
+                if (element.hasAttribute('onchange') && element.getAttribute('onchange').includes(`updateInputValue(${oldIndex})`)) {
+                    element.setAttribute('onchange', `updateInputValue(${newIndex})`);
+                }
             });
             
-            // Update onchange handlers
+            // Update onchange handlers for action select
             const actionSelect = step.querySelector(`select[id="action-${newIndex}"]`);
             if (actionSelect) {
                 actionSelect.setAttribute('onchange', `updateStepFields(${newIndex})`);
+            }
+            
+            // Update onchange handlers for wait type select
+            const waitTypeSelect = step.querySelector(`select[id="wait-type-${newIndex}"]`);
+            if (waitTypeSelect) {
+                waitTypeSelect.setAttribute('onchange', `updateWaitFields(${newIndex})`);
             }
         });
     }
@@ -381,9 +437,11 @@
         
         // Hide all containers first
         document.getElementById(`selector-type-container-${stepNumber}`).classList.add('hidden');
+        document.getElementById(`wait-type-container-${stepNumber}`).classList.add('hidden');
         document.getElementById(`url-container-${stepNumber}`).classList.add('hidden');
         document.getElementById(`selector-value-container-${stepNumber}`).classList.add('hidden');
         document.getElementById(`input-value-container-${stepNumber}`).classList.add('hidden');
+        document.getElementById(`wait-value-container-${stepNumber}`).classList.add('hidden');
         document.getElementById(`manual-instruction-container-${stepNumber}`).classList.add('hidden');
         
         // Remove required attribute from all inputs
@@ -396,6 +454,9 @@
         const inputValueInput = document.getElementById(`input-value-${stepNumber}`);
         if (inputValueInput) inputValueInput.removeAttribute('required');
         
+        const waitValueInput = document.getElementById(`wait-value-${stepNumber}`);
+        if (waitValueInput) waitValueInput.removeAttribute('required');
+        
         const manualInstructionInput = document.getElementById(`manual-instruction-${stepNumber}`);
         if (manualInstructionInput) manualInstructionInput.removeAttribute('required');
         
@@ -406,16 +467,84 @@
         } else if (action === 'manual') {
             document.getElementById(`manual-instruction-container-${stepNumber}`).classList.remove('hidden');
             manualInstructionInput.setAttribute('required', 'required');
+        } else if (action === 'wait') {
+            document.getElementById(`wait-type-container-${stepNumber}`).classList.remove('hidden');
+            
+            // Get wait type
+            const waitType = document.getElementById(`wait-type-${stepNumber}`).value;
+            
+            if (waitType === 'time') {
+                document.getElementById(`wait-value-container-${stepNumber}`).classList.remove('hidden');
+                waitValueInput.setAttribute('required', 'required');
+            } else {
+                document.getElementById(`selector-type-container-${stepNumber}`).classList.remove('hidden');
+                document.getElementById(`selector-value-container-${stepNumber}`).classList.remove('hidden');
+                selectorValueInput.setAttribute('required', 'required');
+            }
+        } else if (action === 'screenshot') {
+            // No additional fields needed for screenshot
         } else {
+            // For click, input, assert, select, scrollto, hover
             document.getElementById(`selector-type-container-${stepNumber}`).classList.remove('hidden');
             document.getElementById(`selector-value-container-${stepNumber}`).classList.remove('hidden');
             selectorValueInput.setAttribute('required', 'required');
             
-            if (action === 'input') {
+            if (action === 'input' || action === 'assert' || action === 'select') {
                 document.getElementById(`input-value-container-${stepNumber}`).classList.remove('hidden');
                 inputValueInput.setAttribute('required', 'required');
+                
+                // Update label based on action
+                const inputLabel = document.querySelector(`label[for="input-value-${stepNumber}"]`);
+                if (action === 'input') {
+                    inputLabel.textContent = 'Input Value';
+                } else if (action === 'assert') {
+                    inputLabel.textContent = 'Expected Text';
+                } else if (action === 'select') {
+                    inputLabel.textContent = 'Option Value/Text';
+                    document.getElementById(`input-value-${stepNumber}`).placeholder = 'Use "value:" prefix to select by value, "index:" for index, or enter visible text';
+                }
             }
         }
+        
+        // Update the hidden input value
+        updateInputValue(stepNumber);
+    }
+    
+    // Update fields based on wait type
+    function updateWaitFields(stepNumber) {
+        const waitType = document.getElementById(`wait-type-${stepNumber}`).value;
+        
+        if (waitType === 'time') {
+            document.getElementById(`selector-type-container-${stepNumber}`).classList.add('hidden');
+            document.getElementById(`selector-value-container-${stepNumber}`).classList.add('hidden');
+            document.getElementById(`wait-value-container-${stepNumber}`).classList.remove('hidden');
+            
+            document.getElementById(`wait-value-${stepNumber}`).setAttribute('required', 'required');
+            document.getElementById(`selector-value-${stepNumber}`).removeAttribute('required');
+        } else {
+            document.getElementById(`selector-type-container-${stepNumber}`).classList.remove('hidden');
+            document.getElementById(`selector-value-container-${stepNumber}`).classList.remove('hidden');
+            document.getElementById(`wait-value-container-${stepNumber}`).classList.add('hidden');
+            
+            document.getElementById(`selector-value-${stepNumber}`).setAttribute('required', 'required');
+            document.getElementById(`wait-value-${stepNumber}`).removeAttribute('required');
+        }
+        
+        // Update the hidden input value
+        updateInputValue(stepNumber);
+    }
+
+    // Update all input values before form submission
+    function updateAllInputValues() {
+        const container = document.getElementById('test-steps-container');
+        const steps = container.querySelectorAll('[id^="step-"]');
+        
+        steps.forEach(step => {
+            const stepNumber = parseInt(step.id.split('-')[1]);
+            updateInputValue(stepNumber);
+        });
+        
+        return true;
     }
 
     // Form validation before submission
@@ -427,7 +556,19 @@
                 if (!container.children.length) {
                     event.preventDefault();
                     alert('Please add at least one test step before saving.');
+                    return false;
                 }
+                
+                // Update all input values before submission
+                return updateAllInputValues();
+            });
+        }
+        
+        // Add event listener to the save button
+        const saveStepsBtn = document.getElementById('save-steps-btn');
+        if (saveStepsBtn) {
+            saveStepsBtn.addEventListener('click', function() {
+                updateAllInputValues();
             });
         }
     });

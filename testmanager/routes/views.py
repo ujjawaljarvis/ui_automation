@@ -1,219 +1,199 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.views.decorators.http import require_http_methods
-from django.urls import reverse
+from django.http import JsonResponse, HttpResponse
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
-from django.utils import timezone
-from django.db import transaction
-import subprocess
-import sys
+from django.urls import reverse
+from django.conf import settings
+from django.utils.timezone import now
 import json
-
-from testmanager.models import Project, TestPlan, TestStep, TestRun
+import os
+import subprocess
+import threading
+from testmanager.models import Project, TestPlan, TestStep, TestRun, TestStepResult
 from testmanager.forms import ProjectForm, TestPlanForm, TestStepFormSet, TestStepForm
 
 def index(request):
-    """Render the landing page"""
-    return render(request, 'index.html')
+    """Home page view"""
+    projects = Project.objects.all().order_by('-created_at')[:5]
+    recent_test_runs = TestRun.objects.all().order_by('-created_at')[:5]
+    
+    return render(request, 'index.html', {
+        'projects': projects,
+        'recent_test_runs': recent_test_runs
+    })
 
 def project_list(request):
-    """Render the projects list page"""
-    projects = Project.objects.all()
-    
-    # Get selected project and test plan from query parameters
-    project_id = request.GET.get('project')
-    test_plan_id = request.GET.get('test_plan')
-    
-    selected_project = None
-    selected_test_plan = None
-    test_plans = []
-    test_steps = []
-    
-    if project_id:
-        selected_project = get_object_or_404(Project, id=project_id)
-        test_plans = TestPlan.objects.filter(project=selected_project)
-        
-        if test_plan_id:
-            selected_test_plan = get_object_or_404(TestPlan, id=test_plan_id)
-            test_steps = TestStep.objects.filter(test_plan=selected_test_plan).order_by('step_order')
-    
-    context = {
-        'projects': projects,
-        'selected_project': selected_project,
-        'test_plans': test_plans,
-        'selected_test_plan': selected_test_plan,
-        'test_steps': test_steps,
-    }
-    
-    return render(request, 'projects.html', context)
+    """List all projects"""
+    projects = Project.objects.all().order_by('-created_at')
+    return render(request, 'projects.html', {'projects': projects})
 
 def project_detail(request, project_id):
-    """Redirect to project list with project selected"""
-    return redirect(f"{reverse('project_list1')}?project={project_id}")
+    """View project details"""
+    project = get_object_or_404(Project, id=project_id)
+    test_plans = project.test_plans.all().order_by('-created_at')
+    
+    return render(request, 'projects.html', {
+        'projects': Project.objects.all().order_by('-created_at'),
+        'selected_project': project,
+        'test_plans': test_plans
+    })
 
-def test_plan_detail(request, project_id, test_plan_id):
-    """Redirect to project list with project and test plan selected"""
-    return redirect(f"{reverse('project_list1')}?project={project_id}&test_plan={test_plan_id}")
-
-def create_test_plan(request):
-    """Render the create test plan page"""
-    # Check if we're coming from a specific step
-    project_created = request.session.get('project_created', False)
-    test_plan_created = request.session.get('test_plan_created', False)
-    
-    # Get existing projects for selection
-    existing_projects = Project.objects.all()
-    
-    # Check if we should show existing projects selection
-    show_existing = request.GET.get('show_existing', 'false') == 'true'
-    
-    # Get selected project and test plan if they exist
-    selected_project = None
-    selected_test_plan = None
-    
-    if project_created:
-        project_id = request.session.get('selected_project_id')
-        if project_id:
-            selected_project = get_object_or_404(Project, id=project_id)
-    
-    if test_plan_created:
-        test_plan_id = request.session.get('selected_test_plan_id')
-        if test_plan_id:
-            selected_test_plan = get_object_or_404(TestPlan, id=test_plan_id)
-    
-    context = {
-        'project_created': project_created,
-        'test_plan_created': test_plan_created,
-        'existing_projects': existing_projects,
-        'show_existing': show_existing,
-        'selected_project': selected_project,
-        'selected_test_plan': selected_test_plan,
-    }
-    
-    return render(request, 'create_test_plan.html', context)
-
-@transaction.atomic
 def create_project(request):
     """Create a new project"""
     if request.method == 'POST':
         name = request.POST.get('name')
         git_repo = request.POST.get('git_repo')
+        redirect_to = request.POST.get('redirect_to', 'project_detail1')
         
         if not name or not git_repo:
-            messages.error(request, 'Project name and Git repository URL are required.')
-            return redirect('create_test_plan')
+            messages.error(request, 'Please provide both name and git repository URL')
+            return redirect('create_project')
         
-        project = Project.objects.create(name=name, git_repo=git_repo)
+        project = Project.objects.create(
+            name=name,
+            git_repo=git_repo
+        )
         
-        # Store in session that we've created a project
-        request.session['project_created'] = True
-        request.session['selected_project_id'] = project.id
+        messages.success(request, f'Project "{name}" created successfully!')
         
-        return redirect('create_test_plan')
+        # Automatic redirect to test plan creation
+        if redirect_to == 'create_test_plan':
+            return redirect('create_test_plan_for_project', project_id=project.id)
+        
+        return redirect('project_detail1', project_id=project.id)
     
-    return redirect('create_test_plan')
+    return render(request, 'projects/create.html')
 
 def select_project(request):
     """Select an existing project"""
     if request.method == 'POST':
         project_id = request.POST.get('project_id')
+        redirect_to = request.POST.get('redirect_to', 'project_detail1')
         
         if not project_id:
-            messages.error(request, 'Please select a project.')
+            messages.error(request, 'Please select a project')
             return redirect('create_test_plan')
         
-        # Store in session that we've selected a project
-        request.session['project_created'] = True
-        request.session['selected_project_id'] = project_id
+        project = get_object_or_404(Project, id=project_id)
         
-        return redirect('create_test_plan')
+        # Automatic redirect to test plan creation
+        if redirect_to == 'create_test_plan':
+            return redirect('create_test_plan_for_project', project_id=project.id)
+        
+        return redirect('project_detail1', project_id=project.id)
     
     return redirect('create_test_plan')
 
-@transaction.atomic
+def create_test_plan(request):
+    """Create a new test plan (step 1: select project)"""
+    existing_projects = Project.objects.all().order_by('-created_at')
+    show_existing = request.GET.get('show_existing', 'false') == 'true'
+    
+    return render(request, 'create_test_plan.html', {
+        'existing_projects': existing_projects,
+        'show_existing': show_existing,
+        'current_step': 1
+    })
+
 def create_test_plan_for_project(request, project_id):
-    """Create a test plan for a specific project"""
+    """Create a test plan for a specific project (step 2)"""
     project = get_object_or_404(Project, id=project_id)
     
     if request.method == 'POST':
         name = request.POST.get('name')
+        redirect_to = request.POST.get('redirect_to', 'test_plan_detail')
         
         if not name:
-            messages.error(request, 'Test plan name is required.')
-            return redirect('create_test_plan')
+            messages.error(request, 'Please provide a name for the test plan')
+            return redirect('create_test_plan_for_project', project_id=project.id)
         
-        test_plan = TestPlan.objects.create(project=project, name=name)
+        test_plan = TestPlan.objects.create(
+            project=project,
+            name=name
+        )
         
-        # Store in session that we've created a test plan
-        request.session['test_plan_created'] = True
-        request.session['selected_test_plan_id'] = test_plan.id
+        messages.success(request, f'Test plan "{name}" created successfully!')
         
-        return redirect('create_test_plan')
+        # Automatic redirect to add test steps
+        if redirect_to == 'create_test_plan':
+            return redirect('create_test_steps', test_plan_id=test_plan.id)
+        
+        return redirect('test_plan_detail', project_id=project.id, test_plan_id=test_plan.id)
     
-    return redirect('create_test_plan')
+    existing_projects = Project.objects.all().order_by('-created_at')
+    
+    return render(request, 'create_test_plan.html', {
+        'existing_projects': existing_projects,
+        'selected_project': project,
+        'current_step': 2
+    })
 
-@transaction.atomic
+def test_plan_detail(request, project_id, test_plan_id):
+    """View test plan details"""
+    project = get_object_or_404(Project, id=project_id)
+    test_plan = get_object_or_404(TestPlan, id=test_plan_id, project=project)
+    steps = test_plan.steps.all().order_by('step_order')
+    recent_runs = test_plan.runs.all().order_by('-created_at')[:5]
+    
+    return render(request, 'projects.html', {
+        'projects': Project.objects.all().order_by('-created_at'),
+        'selected_project': project,
+        'test_plans': project.test_plans.all().order_by('-created_at'),
+        'selected_test_plan': test_plan,
+        'test_steps': steps
+    })
+
 def create_test_steps(request, test_plan_id):
-    """Create test steps for a test plan"""
+    """Add test steps to a test plan (step 3)"""
     test_plan = get_object_or_404(TestPlan, id=test_plan_id)
+    project = test_plan.project
     
     if request.method == 'POST':
-        # First, delete any existing steps
-        TestStep.objects.filter(test_plan=test_plan).delete()
-        
-        # Get all form fields
-        form_data = request.POST
-        
-        # Find all step indices by looking for step_order_X fields
-        step_indices = []
-        for key in form_data:
+        # Get all step data from the form
+        step_count = 0
+        for key in request.POST:
             if key.startswith('step_order_'):
-                step_index = key.split('_')[-1]
-                step_indices.append(step_index)
+                step_count = max(step_count, int(key.split('_')[-1]))
         
-        # Create test steps
-        for index in step_indices:
-            step_order = form_data.get(f'step_order_{index}')
-            action = form_data.get(f'action_{index}')
-            selector_type = form_data.get(f'selector_type_{index}')
-            selector_value = form_data.get(f'selector_value_{index}')
-            input_value = form_data.get(f'input_value_{index}')
+        # Process each step
+        for i in range(1, step_count + 1):
+            step_order = request.POST.get(f'step_order_{i}')
+            action = request.POST.get(f'action_{i}')
             
-            # Validate required fields based on action type
-            if action == 'goto' and not input_value:
-                messages.error(request, f'URL is required for "Goto" action in step {step_order}.')
+            if not step_order or not action:
                 continue
-                
-            if action in ['click', 'input', 'assert'] and (not selector_type or not selector_value):
-                messages.error(request, f'Selector type and value are required for "{action}" action in step {step_order}.')
-                continue
-                
-            if action == 'input' and not input_value:
-                messages.error(request, f'Input value is required for "Input" action in step {step_order}.')
-                continue
+            
+            # Get selector type and value if applicable
+            selector_type = request.POST.get(f'selector_type_{i}')
+            selector_value = request.POST.get(f'selector_value_{i}')
+            input_value = request.POST.get(f'input_value_{i}')
+            wait_type = request.POST.get(f'wait_type_{i}')
             
             # Create the test step
             TestStep.objects.create(
                 test_plan=test_plan,
                 step_order=step_order,
                 action=action,
-                selector_type=selector_type if action not in ['goto', 'manual'] else None,
-                selector_value=selector_value if action not in ['goto', 'manual'] else None,
-                input_value=input_value
+                selector_type=selector_type,
+                selector_value=selector_value,
+                input_value=input_value,
+                wait_type=wait_type
             )
         
-        # Clear session variables
-        request.session['project_created'] = False
-        request.session['test_plan_created'] = False
-        request.session['selected_project_id'] = None
-        request.session['selected_test_plan_id'] = None
-        
-        messages.success(request, 'Test steps created successfully!')
-        return redirect('test_plan_detail', project_id=test_plan.project.id, test_plan_id=test_plan.id)
+        messages.success(request, 'Test steps added successfully!')
+        return redirect('test_plan_detail', project_id=project.id, test_plan_id=test_plan.id)
     
-    return redirect('create_test_plan')
+    existing_projects = Project.objects.all().order_by('-created_at')
+    
+    return render(request, 'create_test_plan.html', {
+        'existing_projects': existing_projects,
+        'selected_project': project,
+        'selected_test_plan': test_plan,
+        'current_step': 3
+    })
 
 def edit_project(request, project_id):
-    """Edit an existing project"""
+    """Edit a project"""
     project = get_object_or_404(Project, id=project_id)
     
     if request.method == 'POST':
@@ -232,8 +212,19 @@ def edit_project(request, project_id):
     
     return render(request, 'edit_project.html', context)
 
+def delete_project(request, project_id):
+    """Delete a project"""
+    project = get_object_or_404(Project, id=project_id)
+    
+    if request.method == 'POST':
+        project.delete()
+        messages.success(request, f'Project "{project.name}" deleted successfully!')
+        return redirect('project_list1')
+    
+    return render(request, 'projects/delete.html', {'project': project})
+
 def edit_test_plan(request, test_plan_id):
-    """Edit an existing test plan and its steps"""
+    """Edit a test plan"""
     test_plan = get_object_or_404(TestPlan, id=test_plan_id)
     
     if request.method == 'POST':
@@ -257,8 +248,20 @@ def edit_test_plan(request, test_plan_id):
     
     return render(request, 'edit_test_plan.html', context)
 
+def delete_test_plan(request, test_plan_id):
+    """Delete a test plan"""
+    test_plan = get_object_or_404(TestPlan, id=test_plan_id)
+    project_id = test_plan.project.id
+    
+    if request.method == 'POST':
+        test_plan.delete()
+        messages.success(request, f'Test plan "{test_plan.name}" deleted successfully!')
+        return redirect('project_detail1', project_id=project_id)
+    
+    return render(request, 'test_plans/delete.html', {'test_plan': test_plan})
+
 def edit_test_step(request, test_step_id):
-    """Edit a single test step"""
+    """Edit a test step"""
     test_step = get_object_or_404(TestStep, id=test_step_id)
     
     if request.method == 'POST':
@@ -277,100 +280,83 @@ def edit_test_step(request, test_step_id):
     
     return render(request, 'edit_test_step.html', context)
 
-@require_http_methods(["POST"])
-def delete_project(request, project_id):
-    """Delete a project"""
-    project = get_object_or_404(Project, id=project_id)
-    project.delete()
-    messages.success(request, 'Project deleted successfully!')
-    return redirect('project_list')
-
-@require_http_methods(["POST"])
-def delete_test_plan(request, test_plan_id):
-    """Delete a test plan"""
-    test_plan = get_object_or_404(TestPlan, id=test_plan_id)
-    project_id = test_plan.project.id
-    test_plan.delete()
-    messages.success(request, 'Test plan deleted successfully!')
-    return redirect('project_detail1', project_id=project_id)
-
-@require_http_methods(["POST"])
 def delete_test_step(request, test_step_id):
     """Delete a test step"""
     test_step = get_object_or_404(TestStep, id=test_step_id)
-    project_id = test_step.test_plan.project.id
-    test_plan_id = test_step.test_plan.id
-    test_step.delete()
+    test_plan = test_step.test_plan
     
-    # Reorder remaining steps
-    remaining_steps = TestStep.objects.filter(test_plan_id=test_plan_id).order_by('step_order')
-    for i, step in enumerate(remaining_steps, 1):
-        step.step_order = i
-        step.save()
+    if request.method == 'POST':
+        test_step.delete()
+        
+        # Reorder remaining steps
+        steps = test_plan.steps.all().order_by('step_order')
+        for i, step in enumerate(steps, 1):
+            step.step_order = i
+            step.save()
+        
+        messages.success(request, 'Test step deleted successfully!')
+        return redirect('test_plan_detail', project_id=test_plan.project.id, test_plan_id=test_plan.id)
     
-    messages.success(request, 'Test step deleted successfully!')
-    return redirect('test_plan_detail', project_id=project_id, test_plan_id=test_plan_id)
+    return render(request, 'test_steps/delete.html', {'test_step': test_step})
 
 def run_test_plan(request, test_plan_id):
-    """Run a test plan and show results"""
+    """Run a test plan"""
     test_plan = get_object_or_404(TestPlan, id=test_plan_id)
     
     # Create a new test run
     test_run = TestRun.objects.create(
         test_plan=test_plan,
         status='running',
-        started_at=timezone.now()
+        started_at=now()
     )
     
-    # In a production environment, you would run this asynchronously
-    # For simplicity, we'll run it synchronously here
-    try:
-        # Run the test script as a subprocess
-        cmd = [sys.executable, 'script.py', str(test_plan_id)]
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, stderr = process.communicate()
-        
-        # Update test run with results
-        if process.returncode == 0:
-            test_run.status = 'success'
-            test_run.log = stdout.decode('utf-8')
-        else:
-            test_run.status = 'failed'
-            test_run.log = f"STDOUT:\n{stdout.decode('utf-8')}\n\nSTDERR:\n{stderr.decode('utf-8')}"
-    except Exception as e:
-        test_run.status = 'failed'
-        test_run.log = f"Error running test: {str(e)}"
+    # Run the test plan in a separate thread
+    thread = threading.Thread(
+        target=run_test_in_background,
+        args=(test_plan_id, test_run.id)
+    )
+    thread.daemon = True
+    thread.start()
     
-    test_run.ended_at = timezone.now()
-    test_run.save()
-    
+    messages.success(request, f'Test plan "{test_plan.name}" is now running!')
     return redirect('test_run_detail', test_run_id=test_run.id)
 
+def run_test_in_background(test_plan_id, test_run_id):
+    """Run the test plan in a background thread"""
+    script_path = os.path.join(settings.BASE_DIR, 'script.py')
+    subprocess.run([
+        'python', script_path, str(test_plan_id), str(test_run_id)
+    ])
+
 def test_run_detail(request, test_run_id):
-    """Show test run details"""
+    """View test run details"""
     test_run = get_object_or_404(TestRun, id=test_run_id)
+    step_results = test_run.step_results.all().order_by('step_order')
     
-    # Calculate duration
-    if test_run.ended_at and test_run.started_at:
-        duration = test_run.ended_at - test_run.started_at
-        # Format as minutes:seconds
-        minutes, seconds = divmod(duration.total_seconds(), 60)
-        test_run.duration = f"{int(minutes)}m {int(seconds)}s"
-    
-    context = {
+    return render(request, 'test_run.html', {
         'test_run': test_run,
-    }
-    
-    return render(request, 'test_run.html', context)
+        'step_results': step_results
+    })
 
 def get_test_runs(request, test_plan_id):
-    """Get all test runs for a test plan"""
+    """List all test runs for a test plan"""
     test_plan = get_object_or_404(TestPlan, id=test_plan_id)
-    test_runs = TestRun.objects.filter(test_plan=test_plan).order_by('-started_at')
+    test_runs = test_plan.runs.all().order_by('-created_at')
     
-    context = {
+    return render(request, 'test_runs.html', {
         'test_plan': test_plan,
-        'test_runs': test_runs,
-    }
+        'test_runs': test_runs
+    })
+
+@csrf_exempt
+def get_test_run_status(request, test_run_id):
+    """AJAX endpoint to get test run status"""
+    test_run = get_object_or_404(TestRun, id=test_run_id)
     
-    return render(request, 'test_runs.html', context)
+    return JsonResponse({
+        'status': test_run.status,
+        'log': test_run.log,
+        'ended_at': test_run.ended_at.isoformat() if test_run.ended_at else None,
+        'duration': test_run.duration,
+        'has_error_screenshot': bool(test_run.error_screenshot)
+    })

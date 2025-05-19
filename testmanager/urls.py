@@ -39,6 +39,7 @@ urlpatterns = [
     path('test-plans/<int:test_plan_id>/run/', views.run_test_plan, name='run_test_plan'),
     path('test-runs/<int:test_run_id>/', views.test_run_detail, name='test_run_detail'),
     path('test-plans/<int:test_plan_id>/runs/', views.get_test_runs, name='get_test_runs'),
+    path('test-run/<int:test_run_id>/status/', views.get_test_run_status, name='get_test_run_status')
 ]
 
 
